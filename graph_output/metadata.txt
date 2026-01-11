@@ -1,0 +1,3 @@
+Nodes: 293
+Edges: 575
+Weight attribute: tortuosity
