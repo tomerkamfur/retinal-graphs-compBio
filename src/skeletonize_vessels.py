@@ -44,7 +44,7 @@ def make_filled_mask(img, method="otsu", block_size=35, offset=0.0):
     return mask.astype(bool)
 
 
-def morphological_cleanup(mask, min_size=64, hole_size=64, closing_radius=3):
+def morphological_cleanup(mask, min_size=150, hole_size=150, closing_radius=5):
     """Remove small objects, fill small holes, and optionally close small gaps.
 
     After this step the vessels should be solid, filled regions.
@@ -58,12 +58,48 @@ def morphological_cleanup(mask, min_size=64, hole_size=64, closing_radius=3):
     return cleaned.astype(bool)
 
 
+def enforce_single_pixel_width(skel):
+    """Remove pixels from 2x2 blocks to enforce strict 1-pixel-wide skeleton.
+    
+    Detects 2x2 all-True blocks and removes pixels to break the block
+    while preserving connectivity.
+    """
+    result = skel.copy()
+    height, width = skel.shape
+    
+    # Scan for 2x2 blocks and break them
+    changed = True
+    iterations = 0
+    max_iterations = 10
+    
+    while changed and iterations < max_iterations:
+        changed = False
+        iterations += 1
+        
+        # Detect 2x2 blocks
+        if height > 1 and width > 1:
+            a = result[:-1, :-1] & result[1:, :-1] & result[:-1, 1:] & result[1:, 1:]
+            if np.any(a):
+                changed = True
+                # For each 2x2 block, remove the lower-right pixel
+                to_remove = np.zeros_like(result, dtype=bool)
+                for i in range(height - 1):
+                    for j in range(width - 1):
+                        if a[i, j]:
+                            to_remove[i+1, j+1] = True
+                result = result & (~to_remove)
+    
+    return result.astype(bool)
+
+
 def compute_skeleton(vessel_mask):
     """Skeletonize a filled boolean vessel mask using skimage.morphology.skeletonize.
 
     Input must be boolean; output is boolean skeleton with single-pixel-wide centerlines.
+    Then enforce strict 1-pixel width by removing 2x2 blocks.
     """
     skel = skeletonize(vessel_mask)
+    skel = enforce_single_pixel_width(skel)
     return skel.astype(bool)
 
 
@@ -128,9 +164,9 @@ def main():
     parser.add_argument("--input", required=True, help="Path to input image (black background, white vessels)")
     parser.add_argument("--outdir", default=".", help="Directory to write outputs")
     parser.add_argument("--threshold", choices=['otsu', 'adaptive'], default='otsu')
-    parser.add_argument("--min_size", type=int, default=64, help="Min size to keep objects (pixels)")
-    parser.add_argument("--hole_size", type=int, default=64, help="Max hole area to fill (pixels)")
-    parser.add_argument("--closing_radius", type=int, default=3, help="Disk radius for closing (0 to skip)")
+    parser.add_argument("--min_size", type=int, default=150, help="Min size to keep objects (pixels)")
+    parser.add_argument("--hole_size", type=int, default=150, help="Max hole area to fill (pixels)")
+    parser.add_argument("--closing_radius", type=int, default=5, help="Disk radius for closing (0 to skip)")
     args = parser.parse_args()
 
     os.makedirs(args.outdir, exist_ok=True)
