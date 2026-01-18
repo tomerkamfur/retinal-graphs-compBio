@@ -124,16 +124,21 @@ def detect_node_pixels(skeleton):
 def compress_junction_clusters(junctions, skeleton):
     """Merge nearby junction pixels into single nodes using connected components.
     
+    Each junction cluster is represented by its nearest-skeleton-pixel centroid to ensure
+    all node coordinates lie exactly on the skeleton. This prevents geometric impossibilities
+    where path_length < euclidean distance.
+    
     Args:
         junctions: Set of (y, x) tuples for junction pixels
         skeleton: Boolean array (used for shape reference)
     
     Returns:
-        Dictionary mapping (y, x) cluster indices to compressed node centroids (y_c, x_c).
-        Also returns junction_mask for reference.
+        centroids: Dict mapping label_id -> (y_c, x_c) as closest skeleton pixel to centroid
+        junction_mask: Boolean mask of junction pixels
+        labeled: Labeled connected component array
     """
     if not junctions:
-        return {}, np.zeros_like(skeleton, dtype=bool)
+        return {}, np.zeros_like(skeleton, dtype=bool), np.zeros_like(skeleton, dtype=int)
     
     # Create a mask of junction pixels
     junction_mask = np.zeros_like(skeleton, dtype=bool)
@@ -143,32 +148,45 @@ def compress_junction_clusters(junctions, skeleton):
     # Label connected components of junctions
     labeled, num_features = ndimage.label(junction_mask, structure=np.ones((3, 3), dtype=int))
     
-    # For each component, compute centroid
+    # For each component, compute centroid then snap to nearest skeleton pixel
     centroids = {}
     for label_id in range(1, num_features + 1):
         ys, xs = np.where(labeled == label_id)
         centroid_y = np.mean(ys)
         centroid_x = np.mean(xs)
-        centroids[label_id] = (centroid_y, centroid_x)
+        
+        # Snap to nearest junction pixel (all junction pixels are on skeleton by definition)
+        min_dist = float('inf')
+        best_y, best_x = int(centroid_y), int(centroid_x)
+        for y, x in zip(ys, xs):
+            dist = (y - centroid_y)**2 + (x - centroid_x)**2
+            if dist < min_dist:
+                min_dist = dist
+                best_y, best_x = y, x
+        
+        centroids[label_id] = (float(best_y), float(best_x))
     
     return centroids, junction_mask, labeled
 
 
-def build_node_list(endpoints, junctions, junction_centroids):
+def build_node_list(endpoints, junctions, junction_centroids, labeled_junctions):
     """Build a node list with (id, y, x, type) for all detected nodes.
     
     Args:
         endpoints: Set of (y, x) tuples
-        junctions: Set of (y, x) tuples (for legacy compatibility; we use centroids)
-        junction_centroids: Dict mapping label_id to (y_c, x_c)
+        junctions: Set of (y, x) tuples (original junction pixels)
+        junction_centroids: Dict mapping label_id -> (y_c, x_c) snapped centroids
+        labeled_junctions: Labeled array of junction clusters
     
     Returns:
-        List of tuples (node_id, y, x, node_type).
-        Also returns mapping from (y, x) -> node_id for skeleton pixels.
+        nodes: List of tuples (node_id, y, x, node_type).
+        pixel_to_node: Mapping from (y, x) -> node_id for tracing purposes.
+                      - Endpoints map to themselves
+                      - Original junction pixels map to their snapped centroid's node
     """
     nodes = []
     node_id = 0
-    pixel_to_node = {}  # Maps original skeleton pixel (y, x) to node_id
+    pixel_to_node = {}  # Maps skeleton pixel to node_id
     
     # Add endpoints
     for y, x in endpoints:
@@ -176,12 +194,24 @@ def build_node_list(endpoints, junctions, junction_centroids):
         pixel_to_node[(y, x)] = node_id
         node_id += 1
     
-    # Add junctions (using centroids)
+    # Add junctions (using snapped centroids)
+    # Build mapping: label_id -> node_id
+    label_to_node_id = {}
     for label_id, (y_c, x_c) in junction_centroids.items():
-        nodes.append((node_id, y_c, x_c, 'junction'))
-        # Map all junction pixels with this label to the same node_id
-        # We'll need the labeled array for this mapping, so return it too
+        nodes.append((node_id, float(y_c), float(x_c), 'junction'))
+        label_to_node_id[label_id] = node_id
+        # Map the snapped pixel itself to the node
+        pixel_to_node[(int(y_c), int(x_c))] = node_id
         node_id += 1
+    
+    # Also map ALL original junction pixels to their snapped node_id
+    # This ensures path tracing finds them
+    if labeled_junctions is not None:
+        ys, xs = np.where(labeled_junctions > 0)
+        for y, x in zip(ys, xs):
+            label_id = labeled_junctions[y, x]
+            if label_id in label_to_node_id:
+                pixel_to_node[(y, x)] = label_to_node_id[label_id]
     
     return nodes, pixel_to_node
 
@@ -192,20 +222,23 @@ def trace_edges_from_nodes(skeleton, endpoints, junctions, junction_centroids, l
     Args:
         skeleton: Boolean array
         endpoints: Set of (y, x) endpoint pixels
-        junctions: Set of (y, x) junction pixels
-        junction_centroids: Dict mapping label_id to (y_c, x_c)
+        junctions: Set of (y, x) junction pixels (original, not used for node positions)
+        junction_centroids: Dict mapping label_id to (y_c, x_c) snapped centroids
         labeled_junctions: Labeled array from connected components
     
     Returns:
         List of edges, where each edge is:
         {
-            'start_node': start_pixel,
-            'end_node': end_pixel,
+            'start': start_pixel,
+            'end': end_pixel,
             'path': [(y1, x1), (y2, x2), ...]
         }
     """
+    # Build all_nodes using SNAPPED junction centroids, not original junction pixels
     all_nodes = endpoints.copy()
-    all_nodes.update(junctions)
+    # Add snapped junction centroids (as integer tuples for node positions)
+    for label_id, (y_c, x_c) in junction_centroids.items():
+        all_nodes.add((int(y_c), int(x_c)))
     
     visited_steps = set()  # Track visited (from_pixel, to_pixel) directed steps
     edges = []
@@ -327,7 +360,7 @@ def build_graph_from_skeleton(skeleton, junctions, endpoints, junction_centroids
                                        junction_centroids, labeled_junctions)
     
     # Build final node list
-    nodes, pixel_to_node = build_node_list(endpoints, junctions, junction_centroids)
+    nodes, pixel_to_node = build_node_list(endpoints, junctions, junction_centroids, labeled_junctions)
     
     # Deduplicate and finalize edges
     seen_edges = set()
@@ -381,6 +414,8 @@ def compute_edge_attributes(edges, nodes, pixel_to_node, labeled_junctions, junc
         path = edge['path']
         
         # Find node ids
+        start_node_id = None
+        end_node_id = None
         for node_id, y, x, node_type in nodes:
             if node_type == 'endpoint':
                 if (int(y), int(x)) == start_pix:
@@ -388,10 +423,10 @@ def compute_edge_attributes(edges, nodes, pixel_to_node, labeled_junctions, junc
                 if (int(y), int(x)) == end_pix:
                     end_node_id = node_id
             elif node_type == 'junction':
-                # Match to centroid
-                if abs(y - start_pix[0]) < 1 and abs(x - start_pix[1]) < 1:
+                # Match to centroid (now snapped to skeleton pixel)
+                if abs(y - start_pix[0]) < 0.5 and abs(x - start_pix[1]) < 0.5:
                     start_node_id = node_id
-                if abs(y - end_pix[0]) < 1 and abs(x - end_pix[1]) < 1:
+                if abs(y - end_pix[0]) < 0.5 and abs(x - end_pix[1]) < 0.5:
                     end_node_id = node_id
         
         if start_node_id is None or end_node_id is None:
@@ -401,10 +436,42 @@ def compute_edge_attributes(edges, nodes, pixel_to_node, labeled_junctions, junc
         if start_node_id == end_node_id:
             continue
         
-        # Compute path length (number of steps, or use Euclidean sum)
-        path_length = len(path) - 1  # Number of steps
-        if path_length == 0:
-            path_length = 1
+        # Compute path length accounting for diagonal moves: sqrt(2) for diagonal, 1 for orthogonal
+        # Path includes pixels from first neighbor to end node (not including start node itself)
+        # So we need to add:
+        # 1) Distance from start_node to first path pixel
+        # 2) Distance along path
+        # 3) Last path pixel should be at or near end_node
+        
+        path_length = 0.0
+        
+        # Distance from start node to first path pixel
+        if len(path) > 0:
+            y1, x1 = node_coords[start_node_id]
+            y2, x2 = path[0]
+            dy = abs(y2 - y1)
+            dx = abs(x2 - x1)
+            if (dy == 1 and dx == 0) or (dy == 0 and dx == 1):
+                path_length += 1.0
+            elif dy == 1 and dx == 1:
+                path_length += np.sqrt(2)
+            else:
+                path_length += np.hypot(dy, dx)
+        
+        # Distance along the path
+        for i in range(len(path) - 1):
+            y1, x1 = path[i]
+            y2, x2 = path[i + 1]
+            dy = abs(y2 - y1)
+            dx = abs(x2 - x1)
+            # Orthogonal move (dy=1, dx=0) or (dy=0, dx=1): distance = 1
+            # Diagonal move (dy=1, dx=1): distance = sqrt(2)
+            if (dy == 1 and dx == 0) or (dy == 0 and dx == 1):
+                path_length += 1.0
+            elif dy == 1 and dx == 1:
+                path_length += np.sqrt(2)
+            else:
+                path_length += np.hypot(dy, dx)
         
         # Euclidean distance
         start_y, start_x = node_coords[start_node_id]
