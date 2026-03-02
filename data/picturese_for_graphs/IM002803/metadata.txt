@@ -1,0 +1,3 @@
+Nodes: 149
+Edges: 27
+Weight attribute: path_length
