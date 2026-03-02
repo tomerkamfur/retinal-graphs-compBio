@@ -1,43 +1,84 @@
 # Graph-Based Analysis of Retinal Blood Vessel Networks Across Diabetic Retinopathy Severity Levels
 
 ## Research Question
-Do graph-based structural features extracted from retinal blood vessel networks, such as vessel tortuosity and branching properties, exhibit systematic differences across expert-assigned diabetic retinopathy severity grades?
+Do graph-based structural features extracted from retinal vessel networks (for example tortuosity, edge length, and connectivity) differ across diabetic retinopathy (DR) severity grades?
 
-## Project Overview
-This project analyzes the structural properties of retinal blood vessel networks using graph-based methods. We extract vascular networks from retinal fundus images, convert them to graphs, and investigate whether graph-derived features correlate with diabetic retinopathy (DR) severity.
+## Current End-to-End Pipeline
+The project now supports a full pipeline from raw Messidor-2 fundus images to per-image graph features and severity-level histograms.
 
-## Methodology
-1. **Image Processing**: Vessel segmentation using green-channel extraction, contrast enhancement, and morphological operations
-2. **Skeletonization**: Convert vessel masks to one-pixel-wide centerlines
-3. **Graph Construction**: Create graphs where nodes are vessel endpoints/branch points, edges represent vessel segments
-4. **Feature Extraction**: Compute tortuosity, branching statistics, shortest paths, and connectivity metrics
-5. **Statistical Analysis**: Compare features across DR severity grades
+1. Vessel segmentation (raw image -> binary mask)
+2. Skeletonization (mask -> 1-pixel centerline)
+3. Graph extraction (nodes, edges, adjacency matrices)
+4. Shortest-path statistics (endpoint pairs)
+5. Feature aggregation table (per image + severity)
+6. Histograms per feature by severity
 
-## Project Structure
-```
-retinal-graphs-compBio/
-├── data/
-│   └── messidor-2/        # Messidor dataset (retinal images)
-|   └── messidor_data.csv  # CSV with severity labels
-├── src/
-│   ├── preprocessing.py   # Vessel segmentation pipeline
-│   ├── graph_utils.py     # Graph construction and analysis
-│   ├── features.py        # Feature extraction
-│   └── analysis.py        # Statistical analysis
-├── notebooks/
-│   ├── 01_data_exploration.ipynb
-│   ├── 02_vessel_segmentation.ipynb
-│   ├── 03_graph_construction.ipynb
-│   └── 04_analysis.ipynb
-├── results/               # Output visualizations and statistics
-└── requirements.txt
+## Main Entry Point
+Run everything with:
+
+```bash
+python main.py
 ```
 
-## Getting Started
-1. Download the Messidor dataset (already done, in data/messidor-2 + the csv with the saverity labels)
-2. Install dependencies: `pip install -r requirements.txt` (shaked - run this to get all the libs quickly)
-3. start writing py files and notebooks 
+By default, `main.py` uses MAPLE-based segmentation.
 
-## References
-- Messidor Dataset: https://www.kaggle.com/datasets/andrewmvd/messidor
-- Diabetic Retinopathy: https://en.wikipedia.org/wiki/Diabetic_retinopathy
+Useful options:
+
+```bash
+# include graph overlay images
+python main.py --overlay
+
+# test on first 5 images
+python main.py --limit 5 --verbose
+
+# use the regular (non-MAPLE) segmentation instead
+python main.py --segmentation regular
+```
+
+## Inputs
+- `data/messidor-2/` : fundus images
+- `data/messidor_data.csv` : labels with severity (`diagnosis`)
+
+## Outputs
+
+### Per-image outputs
+Saved under:
+- `data/picturese_for_graphs/<image_id>/`
+
+Typical files:
+- `<image_id>_final_mask.png`
+- `skeleton.png`
+- `nodes.csv`
+- `edges.csv`
+- `adjacency_unweighted.npy`
+- `adjacency_weighted.npy`
+- `endpoint_pair_paths.csv`
+- `endpoint_pair_paths.npy`
+- `metadata.txt`
+- `tortuosity_path_stats.txt`
+- `tortuosity_edge_stats.txt`
+- `graph_overlay.png` (if `--overlay`)
+- `graph_overlay_stats.png` (if `--overlay`)
+
+### Global outputs
+- `results/graph_feature_table.csv` : one row per image with graph features + severity
+- `results/feature_histograms/` : histogram images per feature, split by severity
+- `results/pipeline_run_summary.csv` : pipeline success/failure per image
+
+## Core Scripts
+- `main.py` : complete pipeline runner
+- `src/preprocessing.py` : vessel mask extraction from retinal image
+- `src/skeletonize_vessels.py` : skeleton generation
+- `src/skeleton_to_graph.py` : graph building and adjacency matrix export
+- `scripts/graph_path_stats.py` : pairwise endpoint shortest-path statistics
+- `scripts/overlay_with_stats.py` : overlay annotation with summary stats
+- `src/graph_algorithms.py` : BFS/Dijkstra helpers on saved matrices
+- `src/graph_feature_table.py` : feature table creation + severity merge
+- `src/plot_feature_histograms.py` : per-feature severity histograms
+
+## Setup
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```

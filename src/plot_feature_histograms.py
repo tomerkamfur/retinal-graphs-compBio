@@ -79,10 +79,17 @@ def plot_feature_by_severity(
         vmax += 0.5
     bin_edges = np.linspace(vmin, vmax, bins + 1)
 
+    severity_total_counts = df.groupby("severity_score").size().to_dict()
+
     for ax, sev in zip(axes, severities):
         vals = df.loc[df["severity_score"] == sev, feature].dropna().to_numpy(dtype=float)
+        total_n = int(severity_total_counts.get(sev, 0))
+        valid_n = int(len(vals))
         ax.hist(vals, bins=bin_edges, color="#2a9d8f", edgecolor="black", alpha=0.85)
-        ax.set_title(f"Severity {severity_label(sev)} (n={len(vals)})")
+        ax.set_title(
+            f"Severity {severity_label(sev)}\n"
+            f"images={total_n}, valid={valid_n}"
+        )
         ax.set_xlabel(feature)
         ax.grid(alpha=0.25, linewidth=0.6)
 
