@@ -1,4 +1,4 @@
-"""End-to-end retinal graph pipeline.
+'''End-to-end retinal graph pipeline.
 
 Pipeline:
 1. Find `data/messidor-2`
@@ -9,7 +9,7 @@ Pipeline:
 6. Optionally create graph overlays with statistics
 7. Build feature table
 8. Build histograms by severity
-"""
+'''
 
 from __future__ import annotations
 

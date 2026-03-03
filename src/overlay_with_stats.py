@@ -1,4 +1,5 @@
-'''Annotate graph overlay image with summary statistics.
+'''
+Annotate graph overlay image with summary statistics.
 
 Loads:
  - overlay image (default: graph_output/graph_overlay.png)

@@ -64,7 +64,7 @@ def plot_feature_by_severity(
     output_path: Path,
 ) -> None:
     n = len(severities)
-    fig, axes = plt.subplots(1, n, figsize=(4.5 * n, 4), sharey=True)
+    fig, axes = plt.subplots(1, n, figsize=(4.5 * n, 4), sharey=False)
     if n == 1:
         axes = [axes]
 

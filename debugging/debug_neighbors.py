@@ -1,11 +1,11 @@
-"""Debug the edge tracing algorithm."""
+'''Debug the edge tracing algorithm.'''
 
 import numpy as np
 from scipy import ndimage
 from skimage import io
 
 def load_skeleton(image_path):
-    """Load skeleton image and binarize."""
+    '''Load skeleton image and binarize.'''
     img = io.imread(image_path)
     if img.ndim == 3:
         img = np.mean(img, axis=2)
@@ -15,7 +15,7 @@ def load_skeleton(image_path):
     return skeleton
 
 def get_8neighbors(y, x, shape):
-    """Get 8-connected neighbors."""
+    '''Get 8-connected neighbors.'''
     height, width = shape
     neighbors = []
     for dy in [-1, 0, 1]:
@@ -28,7 +28,7 @@ def get_8neighbors(y, x, shape):
     return neighbors
 
 def count_neighbors(skeleton, y, x):
-    """Count skeleton neighbors."""
+    '''Count skeleton neighbors.'''
     neighbors = get_8neighbors(y, x, skeleton.shape)
     return sum(1 for ny, nx in neighbors if skeleton[ny, nx])
 
