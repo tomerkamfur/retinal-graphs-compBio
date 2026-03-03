@@ -13,26 +13,47 @@ The project now supports a full pipeline from raw Messidor-2 fundus images to pe
 5. Feature aggregation table (per image + severity)
 6. Histograms per feature by severity
 
-## Main Entry Point
-Run everything with:
+## Useful Script Commands
 
 ```bash
-python main.py
-```
+# 1) Full pipeline (default: MAPLE segmentation)
+python main.py # WARNING: full run takes entire day. instead, run sample
 
-By default, `main.py` uses MAPLE-based segmentation.
+# 1') Full pipeline on a limited sample (example 5 images)
+python main.py --limit 5
 
-Useful options:
-
-```bash
-# include graph overlay images
+# 2) Full pipeline with overlays
 python main.py --overlay
 
-# test on first 5 images
-python main.py --limit 5 --verbose
-
-# use the regular (non-MAPLE) segmentation instead
+# 3) Full pipeline with regular (non-MAPLE) segmentation
 python main.py --segmentation regular
+
+# 4) Build feature table from existing graph folders
+python src/graph_feature_table.py \
+  --graphs-root data/picturese_for_graphs \
+  --labels-csv data/messidor_data.csv \
+  --output-csv results/graph_feature_table.csv
+
+# 5) Build histograms from an existing feature table
+python src/plot_feature_histograms.py \
+  --table-csv results/graph_feature_table.csv \
+  --output-dir results/feature_histograms \
+  --bins 10
+
+# 6) Run BFS/Dijkstra connectivity metrics for one image graph folder
+python src/graph_algorithms.py \
+  --graph-dir data/picturese_for_graphs/20051020_55701_0100_PP
+
+# 7) Run MAPLE segmentation on one image
+python src/preprocessing_maple_lib.py \
+  --input data/messidor-2/20051020_55701_0100_PP.png \
+  --output results/masks_maple/20051020_55701_0100_PP_vessels.png \
+  --auto-threshold --device cpu
+
+# 8) Run regular segmentation on one image
+python src/preprocessing.py \
+  --input data/messidor-2/20051020_55701_0100_PP.png \
+  --output results/masks/20051020_55701_0100_PP_mask.png
 ```
 
 ## Inputs
