@@ -1,10 +1,10 @@
-"""Graph algorithms utilities for retinal graph matrices.
+'''Graph algorithms utilities for retinal graph matrices.
 
 This module provides:
 - BFS shortest paths on unweighted adjacency matrix
 - Dijkstra shortest paths on weighted adjacency matrix
 - Endpoint-based connectivity metrics
-"""
+'''
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ import pandas as pd
 
 
 def load_graph_matrices(graph_dir: Path) -> tuple[np.ndarray, np.ndarray]:
-    """Load graph matrices from one image graph directory."""
+    '''Load graph matrices from one image graph directory.'''
     a_path = graph_dir / "adjacency_unweighted.npy"
     w_path = graph_dir / "adjacency_weighted.npy"
     if not a_path.exists() or not w_path.exists():
@@ -30,7 +30,7 @@ def load_graph_matrices(graph_dir: Path) -> tuple[np.ndarray, np.ndarray]:
 
 
 def load_nodes(graph_dir: Path) -> pd.DataFrame:
-    """Load nodes.csv if available."""
+    '''Load nodes.csv if available.'''
     nodes_path = graph_dir / "nodes.csv"
     if not nodes_path.exists():
         return pd.DataFrame(columns=["id", "y", "x", "type"])
@@ -46,7 +46,7 @@ def _neighbors_weighted(w: np.ndarray, u: int) -> np.ndarray:
 
 
 def bfs_shortest_paths(a: np.ndarray, source: int) -> np.ndarray:
-    """Shortest path lengths from source in hops (np.inf when unreachable)."""
+    '''Shortest path lengths from source in hops (np.inf when unreachable).'''
     n = a.shape[0]
     dist = np.full(n, np.inf, dtype=float)
     dist[source] = 0.0
@@ -62,7 +62,7 @@ def bfs_shortest_paths(a: np.ndarray, source: int) -> np.ndarray:
 
 
 def dijkstra_shortest_paths(w: np.ndarray, source: int) -> np.ndarray:
-    """Shortest path lengths from source using non-negative edge weights."""
+    '''Shortest path lengths from source using non-negative edge weights.'''
     n = w.shape[0]
     dist = np.full(n, np.inf, dtype=float)
     dist[source] = 0.0
@@ -84,7 +84,7 @@ def dijkstra_shortest_paths(w: np.ndarray, source: int) -> np.ndarray:
 
 
 def endpoint_node_ids(nodes_df: pd.DataFrame, num_nodes: int) -> np.ndarray:
-    """Return endpoint node ids; fallback to all nodes if unavailable."""
+    '''Return endpoint node ids; fallback to all nodes if unavailable.'''
     if "type" in nodes_df.columns and "id" in nodes_df.columns:
         endpoint_ids = nodes_df.loc[nodes_df["type"] == "endpoint", "id"].to_numpy()
         endpoint_ids = endpoint_ids.astype(int, copy=False)
@@ -99,11 +99,11 @@ def mean_endpoint_connectivity(
     w: np.ndarray,
     endpoint_ids: Iterable[int],
 ) -> tuple[float, float]:
-    """Compute mean connectivity across endpoint nodes for BFS and Dijkstra.
+    '''Compute mean connectivity across endpoint nodes for BFS and Dijkstra.
 
     Connectivity of one endpoint = reachable other endpoints / total other endpoints.
     Returns (mean_bfs_connectivity, mean_dijkstra_connectivity) in [0, 1].
-    """
+    '''
     endpoint_ids = np.array(list(endpoint_ids), dtype=int)
     m = endpoint_ids.size
     if m <= 1:

@@ -1,4 +1,5 @@
-"""Build a per-image graph feature table for downstream analysis.
+'''
+Build a per-image graph feature table for downstream analysis.
 
 Expected per-image graph directory files:
 - adjacency_unweighted.npy
@@ -15,7 +16,7 @@ Output table columns include:
 - mean_edge_length
 - mean_connectivity_bfs
 - mean_connectivity_dijkstra
-"""
+'''
 
 from __future__ import annotations
 
@@ -34,7 +35,7 @@ from graph_algorithms import (
 
 
 def discover_graph_dirs(root: Path) -> list[Path]:
-    """Find directories that look like saved graph outputs."""
+    '''Find directories that look like saved graph outputs.'''
     out = []
     for p in sorted(root.rglob("*")):
         if not p.is_dir():
@@ -53,7 +54,7 @@ def normalize_image_id(name: str) -> str:
 
 
 def load_severity_map(labels_csv: Path) -> dict[str, float]:
-    """Load mapping image_id -> diagnosis severity from Messidor CSV."""
+    '''Load mapping image_id -> diagnosis severity from Messidor CSV.'''
     df = pd.read_csv(labels_csv)
     if "id_code" not in df.columns or "diagnosis" not in df.columns:
         raise ValueError("labels CSV must contain columns: id_code, diagnosis")

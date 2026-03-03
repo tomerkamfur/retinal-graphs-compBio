@@ -19,7 +19,7 @@ if bad_edges:
     for i, pl, eu, diff in bad_edges[:10]:
         print(f'  Row {i}: path_length={pl:.2f}, euclidean={eu:.2f}, diff={diff:.2f}')
 else:
-    print('✓ All edges have path_length >= euclidean')
+    print('V All edges have path_length >= euclidean')
     
 # Show sample edges
 print('\nSample edges:')

@@ -1,4 +1,5 @@
-"""Plot per-feature histograms split by severity, side by side.
+'''
+Plot per-feature histograms split by severity, side by side.
 
 Input:
 - CSV table produced by graph_feature_table.py
@@ -6,7 +7,7 @@ Input:
 Output:
 - One PNG per numeric feature.
 - Each PNG contains subplots, one histogram per severity level.
-"""
+'''
 
 from __future__ import annotations
 

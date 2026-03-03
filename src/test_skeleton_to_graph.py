@@ -1,4 +1,4 @@
-"""Unit tests for skeleton_to_graph module using synthetic skeletons."""
+'''Unit tests for skeleton_to_graph module using synthetic skeletons.'''
 
 import numpy as np
 import sys
@@ -18,7 +18,7 @@ from skeleton_to_graph import (
 
 
 def test_line():
-    """Test: horizontal line with two endpoints."""
+    '''Test: horizontal line with two endpoints.'''
     skeleton = np.zeros((5, 5), dtype=bool)
     skeleton[2, 1:4] = True  # Horizontal line from (2,1) to (2,3)
     
@@ -33,11 +33,11 @@ def test_line():
     # Endpoints should be the two ends
     assert (2, 1) in endpoints or (2, 3) in endpoints
     
-    print("✓ test_line passed")
+    print("V test_line passed")
 
 
 def test_t_junction():
-    """Test: T-shaped junction with one junction pixel."""
+    '''Test: T-shaped junction with one junction pixel.'''
     skeleton = np.zeros((5, 5), dtype=bool)
     # Horizontal line
     skeleton[2, 1:4] = True
@@ -59,11 +59,11 @@ def test_t_junction():
     assert len(junctions) >= 1, f"Expected at least 1 junction, got {len(junctions)}"
     assert (2, 2) in junctions, f"Expected junction at (2,2), got junctions at {junctions}"
     
-    print("✓ test_t_junction passed")
+    print("V test_t_junction passed")
 
 
 def test_y_junction():
-    """Test: Y-shaped junction (3-way branch)."""
+    '''Test: Y-shaped junction (3-way branch).'''
     skeleton = np.zeros((7, 7), dtype=bool)
     # Center point
     center_y, center_x = 3, 3
@@ -86,11 +86,11 @@ def test_y_junction():
     # At least one junction should exist
     assert len(junctions) >= 1, f"Expected at least 1 junction, got {len(junctions)}"
     
-    print("✓ test_y_junction passed")
+    print("V test_y_junction passed")
 
 
 def test_node_neighbor_counting():
-    """Test neighbor counting in 8-connectivity."""
+    '''Test neighbor counting in 8-connectivity.'''
     # Isolated line: two pixels
     skeleton = np.zeros((5, 5), dtype=bool)
     skeleton[2, 1] = True
@@ -111,11 +111,11 @@ def test_node_neighbor_counting():
     count = count_skeleton_neighbors(skeleton, 2, 2)
     assert count == 2, f"Expected 2 neighbors, got {count}"
     
-    print("✓ test_node_neighbor_counting passed")
+    print("V test_node_neighbor_counting passed")
 
 
 def test_junction_compression():
-    """Test that nearby junction pixels are merged into single clusters."""
+    '''Test that nearby junction pixels are merged into single clusters.'''
     skeleton = np.zeros((5, 5), dtype=bool)
     
     # Create a small cluster of junction pixels (all connected)
@@ -136,11 +136,11 @@ def test_junction_compression():
     assert 2.0 <= centroid[0] <= 3.0, f"Centroid y out of range: {centroid[0]}"
     assert 2.0 <= centroid[1] <= 3.0, f"Centroid x out of range: {centroid[1]}"
     
-    print("✓ test_junction_compression passed")
+    print("V test_junction_compression passed")
 
 
 def test_adjacency_matrix():
-    """Test adjacency matrix construction."""
+    '''Test adjacency matrix construction.'''
     nodes = [
         (0, 0.0, 0.0, 'endpoint'),
         (1, 0.0, 5.0, 'endpoint'),
@@ -163,7 +163,7 @@ def test_adjacency_matrix():
     assert abs(W[0, 2] - 0.89) < 0.01, "Weight not correctly set for edge 0-2"
     assert abs(W[1, 2] - 0.89) < 0.01, "Weight not correctly set for edge 1-2"
     
-    print("✓ test_adjacency_matrix passed")
+    print("V test_adjacency_matrix passed")
 
 
 if __name__ == '__main__':
@@ -176,4 +176,4 @@ if __name__ == '__main__':
     test_junction_compression()
     test_adjacency_matrix()
     
-    print("\n✓ All tests passed!")
+    print("\nV All tests passed!")

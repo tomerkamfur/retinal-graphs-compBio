@@ -1,7 +1,7 @@
-"""
+'''
 This module is used to: discover image files, build a simple index DataFrame,
 validate readability and sizes, and optionally load an external labels CSV to merge with the image index.
-"""
+'''
 
 from pathlib import Path
 from typing import List, Optional
@@ -10,14 +10,14 @@ import cv2
 
 
 class MessidorDataset:
-    """Minimal handler for a local Messidor-2 dataset directory.
+    '''Minimal handler for a local Messidor-2 dataset directory.
 
     Usage:
         ds = MessidorDataset('data/messidor-2')
         ds.discover_images()
         df = ds.to_dataframe()
         ds.validate(sample=5)
-    """
+    '''
 
     def __init__(self, data_dir: str = "data/messidor-2"):
         self.data_dir = Path(data_dir)
@@ -32,10 +32,10 @@ class MessidorDataset:
         return self.images
 
     def to_dataframe(self) -> pd.DataFrame:
-        """Return a DataFrame index with columns: `image_id`, `file_path`.
+        '''Return a DataFrame index with columns: `image_id`, `file_path`.
 
         `image_id` is the filename stem (e.g. 20051020_43808_0100_PP).
-        """
+        '''
         if not self.images:
             self.discover_images()
 
@@ -47,11 +47,11 @@ class MessidorDataset:
         return self.index
 
     def load_labels(self, labels_csv: str, image_id_col: Optional[str] = None) -> Optional[pd.DataFrame]:
-        """Load a labels CSV and merge with the image index if possible.
+        '''Load a labels CSV and merge with the image index if possible.
 
         If `image_id_col` is None the method will attempt to find a matching
         column name containing 'image' or 'name'.
-        """
+        '''
         if self.index is None:
             self.to_dataframe()
 
@@ -66,10 +66,10 @@ class MessidorDataset:
         return merged
 
     def validate(self, sample: int = 5) -> dict:
-        """Quick validation: try to open up to `sample` images and report sizes.
+        '''Quick validation: try to open up to `sample` images and report sizes.
 
         Returns a small report dict.
-        """
+        '''
         if not self.images:
             self.discover_images()
 
@@ -94,7 +94,7 @@ def validate_dataset_dir(data_dir: str = "data/messidor-2") -> bool:
         print(f"✗ No images found in {data_dir}")
         return False
 
-    print(f"✓ Found {len(images)} images in {data_dir}")
+    print(f"V Found {len(images)} images in {data_dir}")
     print("Sample validation:")
     print(ds.validate())
     return True

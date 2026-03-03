@@ -1,4 +1,5 @@
-"""Convert a 1-pixel-wide skeleton image to a graph representation with adjacency matrices.
+'''
+Convert a 1-pixel-wide skeleton image to a graph representation with adjacency matrices.
 
 Pipeline:
 1) Load skeleton image and binarize (True = vessel).
@@ -27,7 +28,7 @@ Pipeline:
 Usage:
     python src/skeleton_to_graph.py --image path/to/skeleton.png --outdir out_dir --weight tortuosity
     python src/skeleton_to_graph.py --image outputs/skeleton.png --outdir graph_out --weight path_length --plot
-"""
+'''
 
 import argparse
 import os
@@ -37,19 +38,16 @@ from skimage import io, img_as_bool
 import csv
 
 
-# ============================================================================
-# CORE FUNCTIONS
-# ============================================================================
-
 def load_skeleton(image_path):
-    """Load skeleton image and binarize.
-    
+    '''
+    Load skeleton image and binarize.
+
     Args:
         image_path: Path to skeleton PNG (white on black).
     
     Returns:
         Boolean array where True = skeleton pixel.
-    """
+    '''
     img = io.imread(image_path)
     # Handle grayscale or RGB
     if img.ndim == 3:
@@ -62,7 +60,8 @@ def load_skeleton(image_path):
 
 
 def get_8neighbors(y, x, shape):
-    """Get 8-connected neighbor coordinates (y, x) for position (y, x).
+    '''
+    Get 8-connected neighbor coordinates (y, x) for position (y, x).
     
     Args:
         y, x: row and column indices
@@ -70,7 +69,7 @@ def get_8neighbors(y, x, shape):
     
     Returns:
         List of (y, x) tuples for valid neighbors.
-    """
+    '''
     height, width = shape
     neighbors = []
     for dy in [-1, 0, 1]:
@@ -84,7 +83,8 @@ def get_8neighbors(y, x, shape):
 
 
 def count_skeleton_neighbors(skeleton, y, x):
-    """Count how many 8-connected neighbors are skeleton pixels.
+    '''
+    Count how many 8-connected neighbors are skeleton pixels.
     
     Args:
         skeleton: Boolean array
@@ -92,21 +92,22 @@ def count_skeleton_neighbors(skeleton, y, x):
     
     Returns:
         Number of skeleton neighbors (0-8).
-    """
+    '''
     neighbors = get_8neighbors(y, x, skeleton.shape)
     count = sum(1 for ny, nx in neighbors if skeleton[ny, nx])
     return count
 
 
 def detect_node_pixels(skeleton):
-    """Detect node pixels: endpoints (1 neighbor) and junctions (>= 3 neighbors).
+    '''
+    Detect node pixels: endpoints (1 neighbor) and junctions (>= 3 neighbors).
     
     Args:
         skeleton: Boolean array
     
     Returns:
         Dictionary with keys 'endpoints' and 'junctions', each a set of (y, x) tuples.
-    """
+    '''
     endpoints = set()
     junctions = set()
     
@@ -122,7 +123,8 @@ def detect_node_pixels(skeleton):
 
 
 def compress_junction_clusters(junctions, skeleton):
-    """Merge nearby junction pixels into single nodes using connected components.
+    '''
+    Merge nearby junction pixels into single nodes using connected components.
     
     Each junction cluster is represented by its nearest-skeleton-pixel centroid to ensure
     all node coordinates lie exactly on the skeleton. This prevents geometric impossibilities
@@ -136,7 +138,7 @@ def compress_junction_clusters(junctions, skeleton):
         centroids: Dict mapping label_id -> (y_c, x_c) as closest skeleton pixel to centroid
         junction_mask: Boolean mask of junction pixels
         labeled: Labeled connected component array
-    """
+    '''
     if not junctions:
         return {}, np.zeros_like(skeleton, dtype=bool), np.zeros_like(skeleton, dtype=int)
     
@@ -170,7 +172,8 @@ def compress_junction_clusters(junctions, skeleton):
 
 
 def build_node_list(endpoints, junctions, junction_centroids, labeled_junctions):
-    """Build a node list with (id, y, x, type) for all detected nodes.
+    '''
+    Build a node list with (id, y, x, type) for all detected nodes.
     
     Args:
         endpoints: Set of (y, x) tuples
@@ -183,7 +186,7 @@ def build_node_list(endpoints, junctions, junction_centroids, labeled_junctions)
         pixel_to_node: Mapping from (y, x) -> node_id for tracing purposes.
                       - Endpoints map to themselves
                       - Original junction pixels map to their snapped centroid's node
-    """
+    '''
     nodes = []
     node_id = 0
     pixel_to_node = {}  # Maps skeleton pixel to node_id
@@ -217,7 +220,8 @@ def build_node_list(endpoints, junctions, junction_centroids, labeled_junctions)
 
 
 def trace_edges_from_nodes(skeleton, endpoints, junctions, junction_centroids, labeled_junctions):
-    """Trace edges by walking from each node to neighboring nodes.
+    '''
+    Trace edges by walking from each node to neighboring nodes.
     
     Args:
         skeleton: Boolean array
@@ -233,7 +237,7 @@ def trace_edges_from_nodes(skeleton, endpoints, junctions, junction_centroids, l
             'end': end_pixel,
             'path': [(y1, x1), (y2, x2), ...]
         }
-    """
+    '''
     # Build all_nodes using SNAPPED junction centroids, not original junction pixels
     all_nodes = endpoints.copy()
     # Add snapped junction centroids (as integer tuples for node positions)
@@ -278,7 +282,8 @@ def trace_edges_from_nodes(skeleton, endpoints, junctions, junction_centroids, l
 
 
 def trace_path(skeleton, start_pixel, current_pixel, all_nodes, junctions, labeled_junctions):
-    """Trace a path from current_pixel until reaching another node.
+    '''
+    Trace a path from current_pixel until reaching another node.
     
     Args:
         skeleton: Boolean array
@@ -291,7 +296,7 @@ def trace_path(skeleton, start_pixel, current_pixel, all_nodes, junctions, label
     Returns:
         (path_pixels, end_node_pixel) or (None, None) if path terminates
         where path_pixels = [(y1, x1), (y2, x2), ...]
-    """
+    '''
     path = [current_pixel]
     prev_pixel = start_pixel
     
@@ -332,19 +337,21 @@ def trace_path(skeleton, start_pixel, current_pixel, all_nodes, junctions, label
 
 
 def canonicalize_edge(start_node, end_node):
-    """Create a canonical (symmetric) edge representation.
+    '''
+    Create a canonical (symmetric) edge representation.
     
     Args:
         start_node, end_node: Pixel tuples
     
     Returns:
         Sorted tuple for undirected edge.
-    """
+    '''
     return tuple(sorted([start_node, end_node]))
 
 
 def build_graph_from_skeleton(skeleton, junctions, endpoints, junction_centroids, labeled_junctions):
-    """Build the complete graph structure.
+    '''
+    Build the complete graph structure.
     
     Args:
         skeleton: Boolean array
@@ -354,7 +361,7 @@ def build_graph_from_skeleton(skeleton, junctions, endpoints, junction_centroids
     
     Returns:
         (nodes_list, edges_list, pixel_to_node_dict)
-    """
+    '''
     # Trace edges
     edges_raw = trace_edges_from_nodes(skeleton, endpoints, junctions, 
                                        junction_centroids, labeled_junctions)
@@ -379,7 +386,8 @@ def build_graph_from_skeleton(skeleton, junctions, endpoints, junction_centroids
 
 
 def compute_edge_attributes(edges, nodes, pixel_to_node, labeled_junctions, junction_centroids):
-    """Compute path_length, euclidean distance, and tortuosity for each edge.
+    '''
+    Compute path_length, euclidean distance, and tortuosity for each edge.
     
     Args:
         edges: List of edge dicts from trace_edges_from_nodes
@@ -390,7 +398,7 @@ def compute_edge_attributes(edges, nodes, pixel_to_node, labeled_junctions, junc
     
     Returns:
         List of edge dicts with attributes added (self-loops removed).
-    """
+    '''
     # Create mapping from node pixel to node_id
     node_id_map = {}  # (y, x) -> node_id
     for node_id, y, x, node_type in nodes:
@@ -494,7 +502,8 @@ def compute_edge_attributes(edges, nodes, pixel_to_node, labeled_junctions, junc
 
 
 def build_adjacency_matrices(num_nodes, edges, weight_attr='tortuosity'):
-    """Build unweighted and weighted adjacency matrices.
+    '''
+    Build unweighted and weighted adjacency matrices.
     
     Args:
         num_nodes: Number of nodes
@@ -503,7 +512,7 @@ def build_adjacency_matrices(num_nodes, edges, weight_attr='tortuosity'):
     
     Returns:
         (A, W) where A is unweighted (0/1) and W is weighted adjacency matrix.
-    """
+    '''
     A = np.zeros((num_nodes, num_nodes), dtype=int)
     W = np.zeros((num_nodes, num_nodes), dtype=float)
     
@@ -526,7 +535,8 @@ def build_adjacency_matrices(num_nodes, edges, weight_attr='tortuosity'):
 
 
 def save_results(outdir, nodes, edges, A, W, weight_attr='tortuosity'):
-    """Save results to CSV and NPY files.
+    '''
+    Save results to CSV and NPY files.
     
     Args:
         outdir: Output directory
@@ -535,7 +545,7 @@ def save_results(outdir, nodes, edges, A, W, weight_attr='tortuosity'):
         A: Unweighted adjacency matrix
         W: Weighted adjacency matrix
         weight_attr: Name of weight attribute used
-    """
+    '''
     os.makedirs(outdir, exist_ok=True)
     
     # Save nodes
@@ -581,13 +591,14 @@ def save_results(outdir, nodes, edges, A, W, weight_attr='tortuosity'):
 
 
 def print_graph_stats(skeleton, nodes, edges):
-    """Print quality control statistics.
+    '''
+    Print quality control statistics.
     
     Args:
         skeleton: Boolean array
         nodes: List of nodes
         edges: List of edges
-    """
+    '''
     # Connected components
     labeled, num_cc = ndimage.label(skeleton)
     
@@ -603,14 +614,15 @@ def print_graph_stats(skeleton, nodes, edges):
 
 
 def plot_graph_overlay(skeleton, nodes, edges, output_path=None):
-    """Plot nodes and edges overlaid on skeleton (optional debug visualization).
+    '''
+    Plot nodes and edges overlaid on skeleton (optional debug visualization).
     
     Args:
         skeleton: Boolean array
         nodes: List of (id, y, x, type) tuples
         edges: List of edge dicts
         output_path: Path to save figure (if provided)
-    """
+    '''
     try:
         import matplotlib.pyplot as plt
     except ImportError:
@@ -655,7 +667,7 @@ def plot_graph_overlay(skeleton, nodes, edges, output_path=None):
 
 
 def main():
-    """CLI entry point."""
+    '''CLI entry point.'''
     parser = argparse.ArgumentParser(
         description="Convert skeleton image to graph with adjacency matrices"
     )

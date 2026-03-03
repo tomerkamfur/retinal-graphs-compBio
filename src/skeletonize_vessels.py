@@ -1,6 +1,7 @@
-"""Create a 1-pixel-wide medial-axis skeleton from a filled vessel image.
+'''
+Create a 1-pixel-wide medial-axis skeleton from a filled vessel image.
 
-Pipeline (strictly follows user's specification):
+Pipeline:
 1) Load image with skimage.io.imread and convert to grayscale if needed.
 2) Create a FILLED vessel mask using Otsu or adaptive thresholding.
 3) Morphological cleanup: remove small objects, fill small holes, optional closing.
@@ -12,7 +13,7 @@ Usage:
     python src/skeletonize_vessels.py --input path/to/image.png --outdir outputs
 
 Requirements: numpy, scikit-image
-"""
+'''
 import argparse
 import os
 import numpy as np
@@ -30,11 +31,11 @@ def load_image(path):
 
 
 def make_filled_mask(img, method="otsu", block_size=35, offset=0.0):
-    """Create a filled boolean vessel mask (True = vessel interior).
-
+    '''
+    Create a filled boolean vessel mask (True = vessel interior).
     method: 'otsu' or 'adaptive'
     block_size, offset: used only for adaptive thresholding
-    """
+    '''
     if method == "otsu":
         thr = threshold_otsu(img)
         mask = img >= thr
@@ -45,10 +46,10 @@ def make_filled_mask(img, method="otsu", block_size=35, offset=0.0):
 
 
 def morphological_cleanup(mask, min_size=150, hole_size=150, closing_radius=5):
-    """Remove small objects, fill small holes, and optionally close small gaps.
-
+    '''
+    Remove small objects, fill small holes, and optionally close small gaps.
     After this step the vessels should be solid, filled regions.
-    """
+    '''
     cleaned = remove_small_objects(mask, min_size=min_size)
     cleaned = remove_small_holes(cleaned, area_threshold=hole_size)
     if closing_radius and closing_radius > 0:
@@ -59,11 +60,11 @@ def morphological_cleanup(mask, min_size=150, hole_size=150, closing_radius=5):
 
 
 def enforce_single_pixel_width(skel):
-    """Remove pixels from 2x2 blocks to enforce strict 1-pixel-wide skeleton.
-    
+    '''
+    Remove pixels from 2x2 blocks to enforce strict 1-pixel-wide skeleton.
     Detects 2x2 all-True blocks and removes pixels to break the block
     while preserving connectivity.
-    """
+    '''
     result = skel.copy()
     height, width = skel.shape
     
@@ -93,23 +94,23 @@ def enforce_single_pixel_width(skel):
 
 
 def compute_skeleton(vessel_mask):
-    """Skeletonize a filled boolean vessel mask using skimage.morphology.skeletonize.
-
+    '''
+    Skeletonize a filled boolean vessel mask using skimage.morphology.skeletonize.
     Input must be boolean; output is boolean skeleton with single-pixel-wide centerlines.
     Then enforce strict 1-pixel width by removing 2x2 blocks.
-    """
+    '''
     skel = skeletonize(vessel_mask)
     skel = enforce_single_pixel_width(skel)
     return skel.astype(bool)
 
 
 def check_skeleton(skel, vessel_mask):
-    """Run sanity checks on skeleton.
-
+    '''
+    Run sanity checks on skeleton.
     - Ensure skeleton pixels lie inside vessel_mask.
     - Detect any 2x2 blocks of True in the skeleton (indicates >1-pixel-thick areas).
     Returns a dict of checks and boolean pass/fail.
-    """
+    '''
     issues = {}
     # Check skeleton is subset of vessel_mask
     outside = np.any(skel & (~vessel_mask))
@@ -133,10 +134,10 @@ def check_skeleton(skel, vessel_mask):
 
 
 def make_overlay(original_img, skel):
-    """Create an RGB overlay showing skeleton in red over the original grayscale image.
-
+    '''
+    Create an RGB overlay showing skeleton in red over the original grayscale image.
     original_img expected float [0,1] grayscale.
-    """
+    '''
     if original_img.ndim == 2:
         gray = np.clip(original_img, 0.0, 1.0)
         rgb = np.dstack([gray, gray, gray])

@@ -1,4 +1,5 @@
-"""Vessel segmentation using fundus-image-toolbox (MAPLES-like pipeline).
+'''
+Vessel segmentation using fundus-image-toolbox (MAPLES-like pipeline).
 
 Outputs binary masks:
 - vessels: 255
@@ -7,7 +8,7 @@ Outputs binary masks:
 Examples:
     python src/preprocessing_maple_lib.py --input data/messidor-2/20051020_55701_0100_PP.png --output results/masks_maple/20051020_55701_0100_PP_vessels.png
     python src/preprocessing_maple_lib.py --input-dir data/messidor-2 --output-dir results/masks_maple
-"""
+'''
 
 from __future__ import annotations
 

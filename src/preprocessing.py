@@ -1,4 +1,4 @@
-"""
+'''
 Vessel segmentation from retinal fundus image to binary mask.
 
 Output mask format:
@@ -8,7 +8,7 @@ Output mask format:
 Usage examples:
     python src/preprocessing.py --input data/messidor-2/IM003360.JPG --output results/masks/IM003360_mask.png
     python src/preprocessing.py --input-dir data/messidor-2 --output-dir results/masks
-"""
+'''
 
 from __future__ import annotations
 
@@ -62,11 +62,11 @@ def imread_rgb(path: Path) -> np.ndarray:
 
 
 def remove_small_components(mask: np.ndarray, min_size: int) -> np.ndarray:
-    """Compatibility wrapper for skimage API changes.
+    '''Compatibility wrapper for skimage API changes.
 
     Newer versions deprecate `min_size` in favor of `max_size` with inclusive
     behavior. Using `max_size=min_size-1` approximates old behavior.
-    """
+    '''
     try:
         return morphology.remove_small_objects(mask, max_size=max(0, min_size - 1))
     except TypeError:
